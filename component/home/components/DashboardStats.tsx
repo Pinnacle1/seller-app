@@ -3,14 +3,18 @@
 import { Card } from "@/component/ui/Card"
 import { TrendingUp, Package, ShoppingBag, Wallet } from "lucide-react"
 
-const stats = [
-  { label: "Today's Orders", value: "12", change: "+3", icon: ShoppingBag },
-  { label: "Revenue (30d)", value: "₹45,230", change: "+12%", icon: TrendingUp },
-  { label: "Total Products", value: "48", change: "3 low", icon: Package },
-  { label: "Available Payout", value: "₹12,450", change: "Ready", icon: Wallet },
-]
+interface Stat {
+  label: string
+  value: string
+  change: string
+  icon: any
+}
 
-export function DashboardStats() {
+interface DashboardStatsProps {
+  stats: Stat[]
+}
+
+export function DashboardStats({ stats }: DashboardStatsProps) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat) => (

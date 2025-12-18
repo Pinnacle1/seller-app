@@ -1,127 +1,419 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 import { StoreInfoStep } from "./components/StoreInfoStep"
 import { LogoUploadStep } from "./components/LogoUploadStep"
 import { VerificationStep } from "./components/VerificationStep"
 import { AadharPanStep } from "./components/AadharPanStep"
 import { BankDetailsStep } from "./components/BankDetailsStep"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Store, Image, ShieldCheck, CreditCard, Building2, Check, Loader2 } from "lucide-react"
+import { authService } from "@/service/auth.service"
+import useOnboardingStore from "@/store/onboarding-store"
 
+// Form step handle type for ref-based submission
+export type FormStepHandle = {
+  submit: () => Promise<boolean>
+}
+
+// Step configuration
 const STEPS = [
-  { id: 1, title: "Store Info", canSkip: true },
-  { id: 2, title: "Logo", canSkip: true },
-  { id: 3, title: "Verify", canSkip: false },
-  { id: 4, title: "KYC", canSkip: true },
-  { id: 5, title: "Bank", canSkip: true },
+  { id: 0, title: "Store Info", icon: Store, canSkip: false },
+  { id: 1, title: "Logo", icon: Image, canSkip: true },
+  { id: 2, title: "Verify", icon: ShieldCheck, canSkip: false },
+  { id: 3, title: "KYC", icon: CreditCard, canSkip: true },
+  { id: 4, title: "Bank", icon: Building2, canSkip: true },
 ]
+
+// Animation variants
+const variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 100 : -100,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -100 : 100,
+    opacity: 0,
+  }),
+}
+
+// Progress Indicator Component
+function ProgressIndicator({ steps, currentStep }: { steps: typeof STEPS; currentStep: number }) {
+  const progressPercentage = Math.round(((currentStep + 1) / steps.length) * 100)
+
+  return (
+    <div className="w-full pt-2 pb-0 lg:pt-6 lg:pb-3">
+      {/* Progress Bar */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm font-medium text-foreground/70">
+            Overall Progress
+          </span>
+          <span className="text-sm font-medium text-foreground/70">
+            {progressPercentage}%
+          </span>
+        </div>
+        <div className="w-full bg-border rounded-full h-2">
+          <div
+            className="bg-green-500 h-2 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPercentage}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Steps */}
+      <div className="hidden md:flex items-center justify-between">
+        {steps.map((stepItem, index) => {
+          const Icon = stepItem.icon
+          return (
+            <div
+              key={index}
+              className="flex-1 flex items-center justify-center relative"
+            >
+              {/* Step Indicator */}
+              <div className="max-w-fit flex flex-col items-center justify-center">
+                <div className="flex flex-col justify-center items-center">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${index < currentStep
+                      ? "bg-green-500 text-white"
+                      : index === currentStep
+                        ? "bg-foreground text-background ring-4 ring-foreground/20"
+                        : "bg-border text-muted-foreground"
+                      }`}
+                  >
+                    {index < currentStep ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Icon className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="mt-2 text-center">
+                    <p
+                      className={`text-xs font-medium ${index <= currentStep ? "text-foreground" : "text-muted-foreground"
+                        }`}
+                    >
+                      {stepItem.title}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {/* Step Line */}
+              {index < steps.length - 1 && (
+                <div
+                  className={`absolute top-[1rem] -right-[2rem] w-[4rem] h-1 mb-2 rounded-full transition-all duration-300 ${index < currentStep ? "bg-green-500" : "bg-border"
+                    }`}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Mobile Step Indicator */}
+      <div className="flex md:hidden items-center justify-center gap-2 mt-4">
+        {steps.map((_, index) => (
+          <div
+            key={index}
+            className={`h-2 rounded-full transition-all duration-300 ${index === currentStep
+              ? "w-8 bg-foreground"
+              : index < currentStep
+                ? "w-2 bg-green-500"
+                : "w-2 bg-border"
+              }`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Navigation Footer Component
+interface OnboardingFooterProps {
+  onBack?: () => void
+  onNext?: () => void
+  onFinish?: () => void
+  onSkip?: () => void
+  isFirstStep: boolean
+  isLastStep: boolean
+  canSkip: boolean
+  loading?: boolean
+}
+
+function OnboardingFooter({
+  onBack,
+  onNext,
+  onFinish,
+  onSkip,
+  isFirstStep,
+  isLastStep,
+  canSkip,
+  loading = false,
+}: OnboardingFooterProps) {
+  return (
+    <div className="w-full flex items-center justify-between flex-wrap md:flex-nowrap gap-4 mt-8">
+      {/* Back Button */}
+      {!isFirstStep ? (
+        <button
+          onClick={onBack}
+          disabled={loading}
+          className="text-sm sm:text-base py-2.5 px-6 border border-border font-medium text-foreground rounded-full hover:bg-muted transition-colors disabled:opacity-50"
+        >
+          Previous
+        </button>
+      ) : (
+        <div />
+      )}
+
+      {/* Next/Skip/Finish Buttons */}
+      <div className="flex items-center justify-end gap-3">
+        {canSkip && (
+          <button
+            onClick={onSkip}
+            disabled={loading}
+            className="text-sm sm:text-base py-2.5 px-6 border border-yellow-500/50 font-medium text-yellow-500 rounded-full hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
+          >
+            {isLastStep ? "Skip & Finish" : "Skip"}
+          </button>
+        )}
+
+        {!isLastStep ? (
+          <button
+            onClick={onNext}
+            disabled={loading}
+            className="text-sm sm:text-base py-2.5 px-6 bg-foreground font-medium text-background rounded-full hover:bg-foreground/90 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Next"
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={onFinish}
+            disabled={loading}
+            className="text-sm sm:text-base py-2.5 px-6 bg-green-500 font-medium text-white rounded-full hover:bg-green-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Finishing...
+              </>
+            ) : (
+              "Finish"
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export function OnboardingClient() {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [stepCompleted, setStepCompleted] = useState<Record<number, boolean>>({})
+  const formRef = useRef<FormStepHandle>(null)
+  const [direction, setDirection] = useState<1 | -1>(1)
+  const [loading, setLoading] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
 
-  const handleNext = () => {
-    setStepCompleted((prev) => ({ ...prev, [currentStep]: true }))
-    if (currentStep < 5) {
-      setCurrentStep(currentStep + 1)
-    } else {
-      router.push("/home")
+  // Use Zustand store
+  const {
+    currentStep,
+    setCurrentStep,
+    completedSteps,
+    markStepCompleted,
+    storeInfo,
+    setStoreInfo,
+    verification,
+    setVerification,
+    kyc,
+    setKyc,
+    bank,
+    setBank,
+    userData,
+    setUserData,
+    resetOnboarding,
+  } = useOnboardingStore()
+
+  const isFirstStep = currentStep === 0
+  const isLastStep = currentStep === STEPS.length - 1
+  const currentStepConfig = STEPS[currentStep]
+
+  // Fetch user data on mount for verification step
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const result = await authService.me()
+        if (result.success && result.data) {
+          const user = result.data
+          setUserData({
+            email: user.email || "",
+            phone: user.phone || "",
+          })
+          // Pre-fill verification if not already set
+          if (!verification.email && user.email) {
+            setVerification({ email: user.email })
+          }
+          if (!verification.phone && user.phone) {
+            setVerification({ phone: user.phone })
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data:", error)
+      } finally {
+        setIsInitializing(false)
+      }
     }
-  }
 
-  const handleSkip = () => {
-    if (currentStep < 5) {
-      setCurrentStep(currentStep + 1)
+    fetchUserData()
+  }, [])
+
+  const goNext = useCallback(async () => {
+    // For form-based steps, validate via ref
+    if (formRef.current) {
+      setLoading(true)
+      try {
+        const isValid = await formRef.current.submit()
+        if (!isValid) {
+          setLoading(false)
+          return
+        }
+        markStepCompleted(currentStep)
+      } catch (error) {
+        console.error("Step validation error:", error)
+        setLoading(false)
+        return
+      }
+      setLoading(false)
     } else {
-      router.push("/home")
+      markStepCompleted(currentStep)
     }
-  }
 
-  const handlePrevious = () => {
-    if (currentStep > 1) {
+    if (!isLastStep) {
+      setDirection(1)
+      setCurrentStep(currentStep + 1)
+    }
+  }, [currentStep, isLastStep, markStepCompleted, setCurrentStep])
+
+  const goBack = useCallback(() => {
+    if (!isFirstStep) {
+      setDirection(-1)
       setCurrentStep(currentStep - 1)
     }
+  }, [isFirstStep, currentStep, setCurrentStep])
+
+  const handleSkip = useCallback(() => {
+    if (isLastStep) {
+      // Skip & Finish for the last step
+      resetOnboarding()
+      router.push("/home")
+    } else {
+      setDirection(1)
+      setCurrentStep(currentStep + 1)
+    }
+  }, [isLastStep, currentStep, router, resetOnboarding, setCurrentStep])
+
+  const handleFinish = useCallback(async () => {
+    // For the last step, try to submit if it has a form
+    if (formRef.current) {
+      setLoading(true)
+      try {
+        const isValid = await formRef.current.submit()
+        if (!isValid) {
+          setLoading(false)
+          return
+        }
+      } catch (error) {
+        console.error("Final step error:", error)
+        setLoading(false)
+        return
+      }
+      setLoading(false)
+    }
+
+    // Clear onboarding data and redirect
+    resetOnboarding()
+    router.push("/home")
+  }, [router, resetOnboarding])
+
+  // Render step content
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0:
+        return <StoreInfoStep ref={formRef} />
+      case 1:
+        return <LogoUploadStep ref={formRef} />
+      case 2:
+        return <VerificationStep ref={formRef} />
+      case 3:
+        return <AadharPanStep ref={formRef} />
+      case 4:
+        return <BankDetailsStep ref={formRef} />
+      default:
+        return null
+    }
   }
 
-  const currentStepConfig = STEPS.find((s) => s.id === currentStep)
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Progress Header */}
-      <div className="p-4 border-b border-border">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-lg font-semibold">Complete Your Profile</h1>
-            <span className="text-sm text-muted-foreground">
-              {currentStep} of {STEPS.length}
-            </span>
-          </div>
-          <div className="flex gap-1">
-            {STEPS.map((step) => (
-              <div
-                key={step.id}
-                className={`h-1 flex-1 rounded-full transition-colors ${
-                  step.id <= currentStep ? "bg-foreground" : "bg-border"
-                }`}
-              />
-            ))}
-          </div>
-          <div className="flex justify-between mt-2">
-            {STEPS.map((step) => (
-              <span
-                key={step.id}
-                className={`text-xs ${step.id === currentStep ? "text-foreground" : "text-muted-foreground"}`}
-              >
-                {step.title}
-              </span>
-            ))}
-          </div>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-start py-8 px-4">
+      <div className="w-full max-w-2xl xl:max-w-3xl flex flex-col gap-6">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground">Complete Your Profile</h1>
+          <p className="text-muted-foreground mt-1">
+            Step {currentStep + 1} of {STEPS.length}: {currentStepConfig.title}
+          </p>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 p-4 md:p-8 overflow-auto">
-        <div className="max-w-2xl mx-auto">
-          {currentStep === 1 && <StoreInfoStep onComplete={handleNext} />}
-          {currentStep === 2 && <LogoUploadStep onComplete={handleNext} />}
-          {currentStep === 3 && <VerificationStep onComplete={handleNext} />}
-          {currentStep === 4 && <AadharPanStep onComplete={handleNext} />}
-          {currentStep === 5 && <BankDetailsStep onComplete={handleNext} />}
-        </div>
-      </div>
+        {/* Progress Indicator */}
+        <ProgressIndicator steps={STEPS} currentStep={currentStep} />
 
-      {/* Footer Navigation */}
-      <div className="p-4 border-t border-border">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-            className="flex items-center gap-1 px-4 py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        {/* Form Content with Animation */}
+        <AnimatePresence custom={direction} mode="wait">
+          <motion.div
+            key={currentStep}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="w-full"
           >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </button>
+            {renderStep()}
+          </motion.div>
+        </AnimatePresence>
 
-          <div className="flex items-center gap-3">
-            {currentStepConfig?.canSkip && (
-              <button
-                onClick={handleSkip}
-                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Skip
-              </button>
-            )}
-            <button
-              onClick={handleNext}
-              className="flex items-center gap-1 px-6 py-2 text-sm bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors"
-            >
-              {currentStep === 5 ? "Finish" : "Next"}
-              {currentStep < 5 && <ChevronRight className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
+        {/* Navigation Footer */}
+        <OnboardingFooter
+          onBack={goBack}
+          onNext={goNext}
+          onFinish={handleFinish}
+          onSkip={handleSkip}
+          isFirstStep={isFirstStep}
+          isLastStep={isLastStep}
+          canSkip={currentStepConfig.canSkip}
+          loading={loading}
+        />
       </div>
     </div>
   )

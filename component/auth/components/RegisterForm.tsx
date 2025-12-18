@@ -6,6 +6,8 @@ import { useState } from "react"
 import { Input } from "@/component/ui/Input"
 import { Button } from "@/component/ui/Button"
 
+import { authService } from "@/service/auth.service"
+
 interface RegisterFormProps {
   onSwitch: () => void
   onSuccess: () => void
@@ -16,10 +18,34 @@ export function RegisterForm({ onSwitch, onSuccess }: RegisterFormProps) {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSuccess()
+    setError("")
+    setLoading(true)
+
+    try {
+      const result = await authService.register({
+        name,
+        email,
+        phone,
+        password,
+        role: "seller" // Force role to seller for this app
+      })
+
+      if (result.success) {
+        onSuccess()
+      } else {
+        setError(result.message || "Registration failed")
+      }
+    } catch (err: any) {
+      console.error("Registration failed:", err)
+      setError(err.response?.data?.message || err.message || "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -52,8 +78,9 @@ export function RegisterForm({ onSwitch, onSuccess }: RegisterFormProps) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Button type="submit" className="w-full">
-        Create Account
+      {error && <p className="text-sm text-destructive text-center">{error}</p>}
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Creating Account..." : "Create Account"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Package, ShoppingBag, Upload, User, FileCheck, Menu, X } from "lucide-react"
+import { Home, Package, ShoppingBag, Upload, User, FileCheck, Menu, X, Wallet } from "lucide-react"
 import { useState } from "react"
 
 const navItems = [
@@ -10,8 +10,8 @@ const navItems = [
   { href: "/orders", label: "Orders", icon: ShoppingBag },
   { href: "/my-products", label: "My Products", icon: Package },
   { href: "/upload-product", label: "Upload", icon: Upload },
-  { href: "/kyc", label: "KYC", icon: FileCheck },
-  { href: "/account", label: "Account", icon: User },
+  { href: "/payouts", label: "Payouts", icon: Wallet },
+  // { href: "/kyc", label: "KYC", icon: FileCheck },
 ]
 
 export function Sidebar() {
@@ -23,9 +23,15 @@ export function Sidebar() {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-background border-b border-border z-40 flex items-center justify-between px-4">
         <span className="text-lg font-semibold">Thrift</span>
-        <button onClick={() => setMobileOpen(true)} className="p-2">
-          <Menu className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setMobileOpen(true)} className="p-2">
+            <Menu className="w-5 h-5" />
+          </button>
+          <Link href="/account" className="flex items-center gap-1 p-2 rounded hover:bg-accent">
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">Account</span>
+          </Link>
+        </div>
       </header>
 
       {/* Mobile Overlay */}

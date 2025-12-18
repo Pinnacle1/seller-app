@@ -13,9 +13,9 @@ export function HomeClient() {
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Welcome back, Seller</p>
         </div>
-        <DashboardStats />
+        <DashboardStats stats={[]} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <RecentOrders />
+          <RecentOrders orders={[]} />
           <QuickActions />
         </div>
       </div>
