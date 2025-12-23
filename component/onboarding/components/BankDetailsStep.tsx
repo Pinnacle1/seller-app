@@ -3,17 +3,18 @@
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react"
 import { Input } from "@/component/ui/Input"
 import { Building2, CheckCircle, Loader2 } from "lucide-react"
-import { onboardService } from "@/service/onboard.service"
 import useOnboardingStore from "@/store/onboarding-store"
+import { useOnboarding } from "@/hooks/use-onboarding"
 import type { FormStepHandle } from "../component.Client"
 
 export const BankDetailsStep = forwardRef<FormStepHandle>((_, ref) => {
-  // Get store state
+  // Get store state and hook actions
   const {
     bank,
     setBank,
     markStepCompleted
   } = useOnboardingStore()
+  const { submitBankDetails: submitBankDetailsApi } = useOnboarding()
 
   // Local state for form - DO NOT sync confirmAccountNumber with accountNumber
   const [accountName, setAccountName] = useState("")
@@ -93,7 +94,7 @@ export const BankDetailsStep = forwardRef<FormStepHandle>((_, ref) => {
     setError("")
 
     try {
-      const success = await useOnboardingStore.getState().submitBankDetails({
+      const success = await submitBankDetailsApi({
         name: accountName,
         account_number: accountNumber,
         ifsc_code: ifscCode,

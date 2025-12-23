@@ -240,7 +240,7 @@ export function OnboardingClient() {
     setBank,
     userData,
     setUserData,
-    resetOnboarding,
+    reset,
   } = useOnboardingStore()
 
   const isFirstStep = currentStep === 0
@@ -313,13 +313,13 @@ export function OnboardingClient() {
   const handleSkip = useCallback(() => {
     if (isLastStep) {
       // Skip & Finish for the last step
-      resetOnboarding()
+      reset()
       router.push("/home")
     } else {
       setDirection(1)
       setCurrentStep(currentStep + 1)
     }
-  }, [isLastStep, currentStep, router, resetOnboarding, setCurrentStep])
+  }, [isLastStep, currentStep, router, reset, setCurrentStep])
 
   const handleFinish = useCallback(async () => {
     // For the last step, try to submit if it has a form
@@ -340,9 +340,9 @@ export function OnboardingClient() {
     }
 
     // Clear onboarding data and redirect
-    resetOnboarding()
+    reset()
     router.push("/home")
-  }, [router, resetOnboarding])
+  }, [router, reset])
 
   // Render step content
   const renderStep = () => {

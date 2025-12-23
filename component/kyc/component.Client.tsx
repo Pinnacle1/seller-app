@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation"
 import { KycForm } from "./components/KycForm"
 import { StatusBanner } from "./components/StatusBanner"
 
-export function KycClient() {
+interface KycClientProps {
+  storeSlug: string
+}
+
+export function KycClient({ storeSlug }: KycClientProps) {
   const router = useRouter()
   const [status, setStatus] = useState<"none" | "pending" | "verified" | "rejected">("none")
 
@@ -14,7 +18,7 @@ export function KycClient() {
   }
 
   const handleSkip = () => {
-    router.push("/home")
+    router.push(`/${storeSlug}/home`)
   }
 
   return (
@@ -48,7 +52,7 @@ export function KycClient() {
 
         {status === "pending" && (
           <div className="text-center">
-            <button onClick={() => router.push("/home")} className="text-sm text-muted-foreground underline">
+            <button onClick={() => router.push(`/${storeSlug}/home`)} className="text-sm text-muted-foreground underline">
               Continue to Dashboard →
             </button>
           </div>

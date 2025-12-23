@@ -6,7 +6,16 @@ import { DashboardLayout } from "@/component/layout/DashboardLayout"
 import { ProductList } from "./components/ProductList"
 import { Button } from "@/component/ui/Button"
 import { Plus, Search, Loader2, RefreshCw, Trash } from "lucide-react"
-import useProductStore from "@/store/product-store"
+import useActiveStoreStore from "@/store/active-store"
+import { useProductsQuery, useDeleteProduct, useBulkDeleteProducts } from "@/queries/use-products-query"
+import { useStoresQuery } from "@/queries/use-stores-query"
+import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "@/queries/keys"
+import { ProductsQueryParams } from "@/types/product"
+
+interface MyProductsClientProps {
+  storeSlug: string
+}
 
 type FilterValue = "all" | "low-stock"
 
@@ -15,29 +24,53 @@ const filters: { value: FilterValue; label: string }[] = [
   { value: "low-stock", label: "Low Stock" },
 ]
 
-export function MyProductsClient() {
+export function MyProductsClient({ storeSlug }: MyProductsClientProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
+
+  // Local UI state
   const [activeFilter, setActiveFilter] = useState<FilterValue>("all")
   const [searchQuery, setSearchQuery] = useState("")
-  const [showBulkActions, setShowBulkActions] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [queryParams, setQueryParams] = useState<Omit<ProductsQueryParams, 'store_id'>>({
+    page: 1,
+    limit: 20,
+  })
 
-  // Use product store - get all state at once to avoid multiple subscriptions
-  const store = useProductStore()
+  // Active store context (Zustand - UI state only)
+  const { activeStoreId, setActiveStore, isSwitching } = useActiveStoreStore()
+
+  // Stores list (React Query - server state)
+  const { data: stores = [] } = useStoresQuery()
+
+  // Find and set active store based on URL slug
+  useEffect(() => {
+    if (stores.length > 0) {
+      const store = stores.find(s => s.slug === storeSlug)
+      if (store && store.id !== activeStoreId) {
+        setActiveStore({
+          id: store.id,
+          slug: store.slug,
+          name: store.name,
+          logo_url: store.logo_url,
+        })
+      }
+    }
+  }, [stores, storeSlug, activeStoreId, setActiveStore])
+
+  // Products data (React Query - server state)
   const {
-    products,
-    pagination,
-    isLoading,
-    isDeleting,
+    data: productsData,
+    isPending: isLoading,
     error,
-    selectedIds,
-    fetchProducts,
-    refreshProducts,
-    deleteProduct,
-    bulkDeleteProducts,
-    toggleSelection,
-    deselectAll,
-    clearError,
-  } = store
+  } = useProductsQuery(activeStoreId, queryParams)
+
+  // Mutations
+  const deleteProductMutation = useDeleteProduct()
+  const bulkDeleteMutation = useBulkDeleteProducts()
+
+  const products = productsData?.products ?? []
+  const pagination = productsData?.pagination ?? { total: 0, page: 1, limit: 20 }
 
   // Compute counts from products array (memoized to prevent re-renders)
   const counts = useMemo(() => ({
@@ -45,46 +78,58 @@ export function MyProductsClient() {
     lowStock: products.filter(p => p.quantity <= 5).length,
   }), [products])
 
-  // Fetch products on mount
-  useEffect(() => {
-    fetchProducts()
-  }, [])
-
   // Show/hide bulk actions based on selection
-  useEffect(() => {
-    setShowBulkActions(selectedIds.length > 0)
-  }, [selectedIds])
+  const showBulkActions = selectedIds.length > 0
 
   // Handle filter change
   const handleFilterChange = useCallback((filter: FilterValue) => {
     setActiveFilter(filter)
-    fetchProducts({ page: 1, limit: 20 })
-  }, [fetchProducts])
+    setQueryParams(prev => ({ ...prev, page: 1 }))
+  }, [])
 
   // Handle search
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    fetchProducts({ page: 1, limit: 20 })
-  }, [fetchProducts])
+    setQueryParams(prev => ({ ...prev, page: 1 }))
+  }, [])
 
   // Handle edit
   const handleEdit = useCallback((id: string) => {
-    router.push(`/upload-product?edit=${id}`)
-  }, [router])
+    router.push(`/${storeSlug}/edit-product/${id}`)
+  }, [router, storeSlug])
 
   // Handle delete
   const handleDelete = useCallback(async (id: string) => {
     if (confirm("Are you sure you want to delete this product?")) {
-      await deleteProduct(id)
+      await deleteProductMutation.mutateAsync(Number(id))
     }
-  }, [deleteProduct])
+  }, [deleteProductMutation])
 
   // Handle bulk delete
   const handleBulkDelete = useCallback(async () => {
     if (confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) {
-      await bulkDeleteProducts(selectedIds)
+      await bulkDeleteMutation.mutateAsync(selectedIds)
+      setSelectedIds([])
     }
-  }, [bulkDeleteProducts, selectedIds])
+  }, [bulkDeleteMutation, selectedIds])
+
+  // Selection handlers
+  const toggleSelection = useCallback((id: number) => {
+    setSelectedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(i => i !== id)
+        : [...prev, id]
+    )
+  }, [])
+
+  const deselectAll = useCallback(() => {
+    setSelectedIds([])
+  }, [])
+
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.products.all })
+  }, [queryClient])
 
   // Filter products for low-stock (client-side)
   const filteredProducts = useMemo(() => {
@@ -93,8 +138,10 @@ export function MyProductsClient() {
       : products
   }, [products, activeFilter])
 
+  const isDeleting = deleteProductMutation.isPending || bulkDeleteMutation.isPending
+
   return (
-    <DashboardLayout>
+    <DashboardLayout storeSlug={storeSlug}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -108,14 +155,14 @@ export function MyProductsClient() {
             <Button
               variant="outline"
               size="sm"
-              onClick={refreshProducts}
+              onClick={handleRefresh}
               disabled={isLoading}
               className="gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button onClick={() => router.push("/upload-product")}>
+            <Button onClick={() => router.push(`/${storeSlug}/upload-product`)}>
               <Plus className="w-4 h-4 mr-2" /> Add Product
             </Button>
           </div>
@@ -145,14 +192,14 @@ export function MyProductsClient() {
               key={f.value}
               onClick={() => handleFilterChange(f.value)}
               className={`px-4 py-2 text-sm rounded-lg border transition-colors whitespace-nowrap flex items-center gap-2 ${activeFilter === f.value
-                  ? "bg-foreground text-background border-foreground"
-                  : "border-border hover:bg-accent"
+                ? "bg-foreground text-background border-foreground"
+                : "border-border hover:bg-accent"
                 }`}
             >
               {f.label}
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeFilter === f.value
-                  ? "bg-background/20 text-background"
-                  : "bg-muted text-muted-foreground"
+                ? "bg-background/20 text-background"
+                : "bg-muted text-muted-foreground"
                 }`}>
                 {f.value === "all" ? counts.all : counts.lowStock}
               </span>
@@ -190,18 +237,18 @@ export function MyProductsClient() {
         {/* Error Message */}
         {error && (
           <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-between">
-            <p className="text-sm text-destructive">{error}</p>
+            <p className="text-sm text-destructive">{error.message}</p>
             <button
-              onClick={clearError}
+              onClick={handleRefresh}
               className="text-xs text-destructive hover:underline"
             >
-              Dismiss
+              Retry
             </button>
           </div>
         )}
 
         {/* Loading State */}
-        {isLoading && products.length === 0 ? (
+        {isLoading || isSwitching ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>

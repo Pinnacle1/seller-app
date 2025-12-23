@@ -3,13 +3,13 @@
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react"
 import { Input } from "@/component/ui/Input"
 import { Mail, Phone, CheckCircle, Loader2, ShieldCheck, Lock } from "lucide-react"
-import { onboardService } from "@/service/onboard.service"
 import { authService } from "@/service/auth.service"
 import useOnboardingStore from "@/store/onboarding-store"
+import { useOnboarding } from "@/hooks/use-onboarding"
 import type { FormStepHandle } from "../component.Client"
 
 export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
-  // Get store state
+  // Get store state and hook actions
   const {
     verification,
     setVerification,
@@ -18,6 +18,7 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
     markStepCompleted,
     setCurrentStep
   } = useOnboardingStore()
+  const { sendPhoneOtp, sendEmailOtp, verifyOtp } = useOnboarding()
 
   // Local state for OTP
   const [phone, setPhone] = useState("")
@@ -115,11 +116,10 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
       // Save phone to store
       setVerification({ phone })
 
-      const success = await useOnboardingStore.getState().sendPhoneOtp(phone)
+      const success = await sendPhoneOtp(phone)
       if (success) {
         setPhoneSent(true)
       } else {
-        // Error handled in store
         setPhoneError(useOnboardingStore.getState().error || "Failed to send OTP")
       }
     } catch (err: any) {
@@ -143,7 +143,7 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
       // Save email to store
       setVerification({ email })
 
-      const success = await useOnboardingStore.getState().sendEmailOtp(email)
+      const success = await sendEmailOtp(email)
       if (success) {
         setEmailSent(true)
       } else {
@@ -167,10 +167,8 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
     setPhoneError("")
 
     try {
-      const success = await useOnboardingStore.getState().verifyOtp(phone, phoneOtp, 'phone')
-      if (success) {
-        // Store state is updated automatically
-      } else {
+      const success = await verifyOtp(phone, phoneOtp, 'phone')
+      if (!success) {
         setPhoneError(useOnboardingStore.getState().error || "Invalid OTP")
       }
     } catch (err: any) {
@@ -191,10 +189,8 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
     setEmailError("")
 
     try {
-      const success = await useOnboardingStore.getState().verifyOtp(email, emailOtp, 'email')
-      if (success) {
-        // Store state is updated automatically
-      } else {
+      const success = await verifyOtp(email, emailOtp, 'email')
+      if (!success) {
         setEmailError(useOnboardingStore.getState().error || "Invalid OTP")
       }
     } catch (err: any) {

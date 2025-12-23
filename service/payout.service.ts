@@ -14,10 +14,14 @@ import {
 export const payoutService = {
     /**
      * Get seller's total earnings summary
+     * @param storeId - Optional store ID to filter earnings
      */
-    getEarnings: async (): Promise<SellerEarningsResponse> => {
+    getEarnings: async (storeId?: number): Promise<SellerEarningsResponse> => {
+        const url = storeId
+            ? `${endpoints.getearnings}?store_id=${storeId}`
+            : endpoints.getearnings;
         return END_POINT.get(
-            endpoints.getearnings,
+            url,
             true,
             "V1",
             { auth: true, token: getCookie(COOKIE_ACCESS_TOKEN) }
@@ -26,10 +30,14 @@ export const payoutService = {
 
     /**
      * Get earnings breakdown by store
+     * @param storeId - Optional store ID to filter earnings
      */
-    getEarningsByStore: async (): Promise<EarningsByStoreResponse> => {
+    getEarningsByStore: async (storeId?: number): Promise<EarningsByStoreResponse> => {
+        const url = storeId
+            ? `${endpoints.getearningsbystore}?store_id=${storeId}`
+            : endpoints.getearningsbystore;
         return END_POINT.get(
-            endpoints.getearningsbystore,
+            url,
             true,
             "V1",
             { auth: true, token: getCookie(COOKIE_ACCESS_TOKEN) }
@@ -41,6 +49,7 @@ export const payoutService = {
      */
     getPayouts: async (params?: PayoutQueryParams): Promise<PayoutListResponse> => {
         const queryParams = new URLSearchParams();
+        if (params?.store_id) queryParams.append("store_id", String(params.store_id));
         if (params?.page) queryParams.append("page", String(params.page));
         if (params?.limit) queryParams.append("limit", String(params.limit));
         if (params?.status) queryParams.append("status", params.status);

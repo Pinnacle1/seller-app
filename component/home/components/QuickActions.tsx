@@ -1,31 +1,40 @@
 "use client"
 
-import Link from "next/link"
 import { Card } from "@/component/ui/Card"
-import { Upload, Package, Wallet, FileCheck } from "lucide-react"
+import { Upload, ShoppingBag, Wallet, BarChart3 } from "lucide-react"
+import Link from "next/link"
 
-const actions = [
-  { label: "Create Product", href: "/upload-product", icon: Upload },
-  { label: "View Orders", href: "/orders", icon: Package },
-  { label: "Request Payout", href: "/account", icon: Wallet },
-  { label: "KYC Status", href: "/kyc", icon: FileCheck },
-]
+interface QuickActionsProps {
+  storeSlug: string
+}
 
-export function QuickActions() {
+export function QuickActions({ storeSlug }: QuickActionsProps) {
+  const actions = [
+    { href: `/${storeSlug}/upload-product`, icon: Upload, label: "Add Product" },
+    { href: `/${storeSlug}/orders`, icon: ShoppingBag, label: "Manage Orders" },
+    { href: `/payouts`, icon: Wallet, label: "View Payouts" },
+    { href: "/account", icon: BarChart3, label: "Account" }
+  ]
+
   return (
     <Card>
-      <h3 className="font-semibold mb-4">Quick Actions</h3>
-      <div className="grid grid-cols-2 gap-3">
-        {actions.map((action) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-accent transition-colors"
-          >
-            <action.icon className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm">{action.label}</span>
-          </Link>
-        ))}
+      <div className="p-4 border-b border-border">
+        <h3 className="font-semibold">Quick Actions</h3>
+      </div>
+      <div className="p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {actions.map((action) => {
+            const Icon = action.icon
+            return (
+              <Link key={action.href} href={action.href}>
+                <div className="p-4 rounded-xl border border-border hover:bg-accent/50 transition-colors text-center">
+                  <Icon className="w-6 h-6 mx-auto mb-2 text-foreground" />
+                  <p className="text-sm font-medium">{action.label}</p>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
       </div>
     </Card>
   )

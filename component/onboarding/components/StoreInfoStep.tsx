@@ -3,13 +3,14 @@
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react"
 import { Input } from "@/component/ui/Input"
 import { Store } from "lucide-react"
-import { onboardService } from "@/service/onboard.service"
 import useOnboardingStore from "@/store/onboarding-store"
+import { useOnboarding } from "@/hooks/use-onboarding"
 import type { FormStepHandle } from "../component.Client"
 
 export const StoreInfoStep = forwardRef<FormStepHandle>((_, ref) => {
-  // Get store state
+  // Get store state and hook actions
   const { storeInfo, setStoreInfo, markStepCompleted, setCurrentStep } = useOnboardingStore()
+  const { createStore } = useOnboarding()
 
   // Local state for form
   const [storeName, setStoreName] = useState(storeInfo.name)
@@ -52,28 +53,19 @@ export const StoreInfoStep = forwardRef<FormStepHandle>((_, ref) => {
       setError("")
 
       try {
-        const success = await useOnboardingStore.getState().createStore({
+        const success = await createStore({
           name: storeName,
           description: description,
         })
 
         if (success) {
-          // Store updated in action
-          // markStepCompleted and next step handling also in store?? 
-          // No, component handles flow control usually, but let's check store implementation.
-          // Store implements: markStepCompleted(0) inside createStore action.
-          // But changing current step is usually UI driven or store driven. 
-          // Store createStore returns boolean.
-
           setCurrentStep(1)
           return true
         } else {
-          // Error set in store
           setError(useOnboardingStore.getState().error || "Failed to create store")
           return false
         }
       } catch (err: any) {
-        // Should be caught in store
         setError("Something went wrong")
         return false
       } finally {

@@ -3,18 +3,19 @@
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react"
 import { Input } from "@/component/ui/Input"
 import { CreditCard, FileText, CheckCircle, Loader2 } from "lucide-react"
-import { onboardService } from "@/service/onboard.service"
 import useOnboardingStore from "@/store/onboarding-store"
+import { useOnboarding } from "@/hooks/use-onboarding"
 import type { FormStepHandle } from "../component.Client"
 
 export const AadharPanStep = forwardRef<FormStepHandle>((_, ref) => {
-  // Get store state
+  // Get store state and hook actions
   const {
     kyc,
     setKyc,
     markStepCompleted,
     setCurrentStep
   } = useOnboardingStore()
+  const { submitAadhaar: submitAadhaarApi, submitPan: submitPanApi } = useOnboarding()
 
   // Local state for form
   const [aadharNumber, setAadharNumber] = useState("")
@@ -86,7 +87,7 @@ export const AadharPanStep = forwardRef<FormStepHandle>((_, ref) => {
     setAadharError("")
 
     try {
-      const success = await useOnboardingStore.getState().submitAadhaar({
+      const success = await submitAadhaarApi({
         name: aadharName,
         aadhaar_number: aadharNumber,
       })
@@ -119,7 +120,7 @@ export const AadharPanStep = forwardRef<FormStepHandle>((_, ref) => {
     setPanError("")
 
     try {
-      const success = await useOnboardingStore.getState().submitPan({
+      const success = await submitPanApi({
         name: panName,
         pan_number: panNumber,
       })

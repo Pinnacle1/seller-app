@@ -3,14 +3,15 @@
 import type React from "react"
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react"
 import { Upload, X, ImageIcon, Loader2, CheckCircle } from "lucide-react"
-import { onboardService } from "@/service/onboard.service" // Keeping it for now as I replaced usage but import remains. Wait, I should remove it.
 import { uploadToCloudinary } from "@/service/cloudinary.service"
 import useOnboardingStore from "@/store/onboarding-store"
+import { useOnboarding } from "@/hooks/use-onboarding"
 import type { FormStepHandle } from "../component.Client"
 
 export const LogoUploadStep = forwardRef<FormStepHandle>((_, ref) => {
-  // Get store state
+  // Get store state and hook actions
   const { storeInfo, setStoreInfo, markStepCompleted, setCurrentStep } = useOnboardingStore()
+  const { uploadStoreLogo } = useOnboarding()
 
   const [logoPreview, setLogoPreview] = useState<string | null>(storeInfo.logoUrl)
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -53,8 +54,8 @@ export const LogoUploadStep = forwardRef<FormStepHandle>((_, ref) => {
         const cloudinaryResponse = await uploadToCloudinary(logoFile)
         const logoUrl = cloudinaryResponse.secure_url
 
-        // Send the Cloudinary URL to backend via store action
-        const success = await useOnboardingStore.getState().uploadStoreLogo({
+        // Send the Cloudinary URL to backend via hook action
+        const success = await uploadStoreLogo({
           storeId: storeInfo.id,
           logo: logoUrl
         })

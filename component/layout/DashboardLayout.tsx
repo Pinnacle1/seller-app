@@ -5,11 +5,16 @@ import { Sidebar } from "./Sidebar"
 import { Header } from "./Header"
 import { Footer } from "./Footer"
 
-export function DashboardLayout({ children }: { children: ReactNode }) {
+interface DashboardLayoutProps {
+  children: ReactNode
+  storeSlug?: string
+}
+
+export function DashboardLayout({ children, storeSlug }: DashboardLayoutProps) {
   return (
     <div className="h-screen bg-background flex overflow-hidden">
       {/* Sidebar - includes mobile header */}
-      <Sidebar />
+      <Sidebar storeSlug={storeSlug} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:ml-64 pt-14 lg:pt-0">

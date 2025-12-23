@@ -40,6 +40,7 @@ export const endpoints = {
     deletebank: '/seller/kyc/bank',
 
     //products
+    products: '/seller/products',
     getproducts: '/seller/products',
     getproductbyid: '/seller/products/:id',
     createproduct: '/seller/products',
@@ -47,6 +48,7 @@ export const endpoints = {
     deleteproduct: '/seller/products/:id',
 
     //orders
+    getOrders: '/seller/orders',
     getorders: '/seller/orders',
     getorderbyid: '/seller/orders/:id',
     updateorderstatus: '/seller/orders/:id/status',
@@ -65,3 +67,4 @@ export const endpoints = {
 
 
 }
+

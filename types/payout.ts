@@ -77,7 +77,9 @@ export interface PayoutMutationResponse {
 // ============== Payout Query Parameters ==============
 
 export interface PayoutQueryParams {
+    store_id?: number;
     status?: string;
     page?: number;
     limit?: number;
 }
+

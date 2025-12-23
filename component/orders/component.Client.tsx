@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/component/layout/DashboardLayout"
 import { OrderList } from "./components/OrderList"
-import useOrderStore from "@/store/order-store"
+import useActiveStoreStore from "@/store/active-store"
+import { useOrdersQuery, useUpdateOrderStatus } from "@/queries/use-orders-query"
+import { useStoresQuery } from "@/queries/use-stores-query"
+import { OrderStatus, OrdersQueryParams } from "@/types/order"
 import {
   RefreshCw,
   Download,
@@ -15,6 +18,12 @@ import {
   XCircle,
   SlidersHorizontal
 } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "@/queries/keys"
+
+interface OrdersClientProps {
+  storeSlug: string
+}
 
 const filters = [
   { value: "all", label: "All", icon: ShoppingCart },
@@ -24,40 +33,74 @@ const filters = [
   { value: "cancelled", label: "Canceled", icon: XCircle },
 ]
 
-export function OrdersClient() {
+export function OrdersClient({ storeSlug }: OrdersClientProps) {
+  const queryClient = useQueryClient()
+
+  // Local UI state
   const [searchQuery, setSearchQuery] = useState("")
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null)
+  const [queryParams, setQueryParams] = useState<Omit<OrdersQueryParams, 'store_id'>>({
+    page: 1,
+    limit: 20,
+  })
 
+  // Active store context (Zustand - UI state only)
+  const { activeStoreId, setActiveStore, isSwitching } = useActiveStoreStore()
+
+  // Stores list (React Query - server state)
+  const { data: stores = [] } = useStoresQuery()
+
+  // Find and set active store based on URL slug
+  useEffect(() => {
+    if (stores.length > 0) {
+      const store = stores.find(s => s.slug === storeSlug)
+      if (store && store.id !== activeStoreId) {
+        setActiveStore({
+          id: store.id,
+          slug: store.slug,
+          name: store.name,
+          logo_url: store.logo_url,
+        })
+      }
+    }
+  }, [stores, storeSlug, activeStoreId, setActiveStore])
+
+  // Orders data (React Query - server state)
   const {
-    orders,
-    pagination,
-    isLoading,
-    isUpdating,
+    data: ordersData,
+    isPending: isLoading,
     error,
-    queryParams,
-    fetchOrders,
-    refreshOrders,
-    updateOrderStatus,
-    setQueryParams,
-    clearError,
-  } = useOrderStore()
+    refetch,
+  } = useOrdersQuery(activeStoreId, queryParams)
 
+  // Update order mutation
+  const updateOrderMutation = useUpdateOrderStatus()
+
+  const orders = ordersData?.orders ?? []
+  const pagination = ordersData?.pagination ?? { total: 0, page: 1, limit: 20 }
   const activeFilter = queryParams.status || "all"
 
-  useEffect(() => {
-    fetchOrders()
-  }, [])
-
   const handleFilterChange = (filter: string) => {
-    const status = filter === "all" ? undefined : filter as any
-    setQueryParams({ ...queryParams, status, page: 1 })
-    fetchOrders({ ...queryParams, status, page: 1 })
+    const status = filter === "all" ? undefined : filter as OrderStatus
+    setQueryParams(prev => ({ ...prev, status, page: 1 }))
   }
 
   const handleUpdateStatus = async (orderId: number, status: "shipped" | "delivered" | "cancelled") => {
     setUpdatingOrderId(orderId)
-    await updateOrderStatus(orderId, { status })
-    setUpdatingOrderId(null)
+    try {
+      await updateOrderMutation.mutateAsync({ orderId, data: { status } })
+    } finally {
+      setUpdatingOrderId(null)
+    }
+  }
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.orders.all })
+  }
+
+  const clearError = () => {
+    // With React Query, errors clear on refetch
+    refetch()
   }
 
   const getCounts = () => {
@@ -71,7 +114,7 @@ export function OrdersClient() {
   const counts = getCounts()
 
   return (
-    <DashboardLayout>
+    <DashboardLayout storeSlug={storeSlug}>
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -112,7 +155,7 @@ export function OrdersClient() {
         </div>
 
         {/* Search & Filter Row */}
-        <div className="flex items-center  gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Search Bar - Reduced Width */}
           <div className="relative flex-1 max-w-[200px] sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -139,7 +182,7 @@ export function OrdersClient() {
 
           {/* Refresh Button */}
           <button
-            onClick={refreshOrders}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="p-2 rounded-lg border border-border hover:bg-accent transition-colors disabled:opacity-50"
           >
@@ -150,9 +193,9 @@ export function OrdersClient() {
         {/* Error */}
         {error && (
           <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-between">
-            <p className="text-xs sm:text-sm text-destructive">{error}</p>
+            <p className="text-xs sm:text-sm text-destructive">{error.message}</p>
             <button onClick={clearError} className="text-xs text-destructive hover:underline">
-              Dismiss
+              Retry
             </button>
           </div>
         )}
@@ -162,9 +205,9 @@ export function OrdersClient() {
           orders={orders}
           filter={activeFilter}
           onUpdateStatus={handleUpdateStatus}
-          isUpdating={isUpdating}
+          isUpdating={updateOrderMutation.isPending}
           updatingOrderId={updatingOrderId}
-          isLoading={isLoading}
+          isLoading={isLoading || isSwitching}
         />
 
         {/* Pagination */}
@@ -174,13 +217,21 @@ export function OrdersClient() {
               Showing {orders.length} of {pagination.total} orders
             </p>
             <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 rounded border border-border hover:bg-accent disabled:opacity-50 text-xs" disabled>
+              <button
+                className="px-3 py-1.5 rounded border border-border hover:bg-accent disabled:opacity-50 text-xs"
+                disabled={pagination.page <= 1}
+                onClick={() => setQueryParams(prev => ({ ...prev, page: prev.page! - 1 }))}
+              >
                 Previous
               </button>
               <span className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-xs font-medium">
                 {pagination.page}
               </span>
-              <button className="px-3 py-1.5 rounded border border-border hover:bg-accent text-xs">
+              <button
+                className="px-3 py-1.5 rounded border border-border hover:bg-accent text-xs"
+                disabled={pagination.page * pagination.limit >= pagination.total}
+                onClick={() => setQueryParams(prev => ({ ...prev, page: (prev.page || 1) + 1 }))}
+              >
                 Next
               </button>
             </div>
