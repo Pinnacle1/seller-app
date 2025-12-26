@@ -57,3 +57,65 @@ export function useUpdateProfile() {
         },
     });
 }
+
+// Address Hooks
+export function useAddressesQuery() {
+    return useQuery({
+        queryKey: queryKeys.account.addresses(),
+        queryFn: async () => {
+            const response = await accountService.getAddresses();
+            if (!response.success) {
+                throw new Error("Failed to fetch addresses");
+            }
+            return response.data || [];
+        },
+    });
+}
+
+export function useCreateAddress() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (data: any) => {
+            const response = await accountService.createAddress(data);
+            if (!response.success) {
+                throw new Error(response.message || "Failed to create address");
+            }
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.account.addresses() });
+        },
+    });
+}
+
+export function useUpdateAddress() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ id, data }: { id: number; data: any }) => {
+            const response = await accountService.updateAddress(id, data);
+            if (!response.success) {
+                throw new Error(response.message || "Failed to update address");
+            }
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.account.addresses() });
+        },
+    });
+}
+
+export function useDeleteAddress() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (id: number) => {
+            const response = await accountService.deleteAddress(id);
+            if (!response.success) {
+                throw new Error(response.message || "Failed to delete address");
+            }
+            return response;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.account.addresses() });
+        },
+    });
+}

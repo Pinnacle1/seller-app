@@ -100,5 +100,60 @@ export const accountService = {
             "V1",
             { auth: true, token: getCookie(COOKIE_ACCESS_TOKEN) }
         );
+    },
+
+    // ============== Address Services ==============
+    getAddresses: async (): Promise<{ success: boolean; data?: Address[] }> => {
+        return END_POINT.get(
+            endpoints.getaddresses,
+            true,
+            "V1",
+            { auth: true, token: getCookie(COOKIE_ACCESS_TOKEN) }
+        );
+    },
+
+    createAddress: async (data: Omit<Address, "id">): Promise<{ success: boolean; message?: string; data?: Address }> => {
+        return END_POINT.post(
+            endpoints.createaddress,
+            data,
+            true,
+            "V1",
+            { auth: true, token: getCookie(COOKIE_ACCESS_TOKEN) }
+        );
+    },
+
+    updateAddress: async (id: number, data: Partial<Omit<Address, "id">>): Promise<{ success: boolean; message?: string; data?: Address }> => {
+        const path = endpoints.updateaddress.replace(":id", String(id));
+        return END_POINT.PATCH(
+            path,
+            data,
+            true,
+            "V1",
+            { auth: true, token: getCookie(COOKIE_ACCESS_TOKEN) }
+        );
+    },
+
+    deleteAddress: async (id: number): Promise<{ success: boolean; message?: string }> => {
+        const path = endpoints.deleteaddress.replace(":id", String(id));
+        return END_POINT.Delete(
+            path,
+            {},
+            "V1",
+            { auth: true, token: getCookie(COOKIE_ACCESS_TOKEN) }
+        );
     }
 };
+
+export interface Address {
+    id: number;
+    name: string;
+    phone: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    country: string;
+    pincode: string;
+    is_default: boolean;
+}
+

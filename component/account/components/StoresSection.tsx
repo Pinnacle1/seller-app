@@ -73,11 +73,11 @@ export function StoresSection({ stores, onStoreClick }: StoresSectionProps) {
                                     <p className="text-xs text-muted-foreground">/{store.slug} • {store.products_count || 0} products</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="sm" onClick={() => router.push(`/${store.slug}/home`)} className="gap-1">
+                                    <Button variant="ghost" size="sm" onClick={() => onStoreClick(store)} className="gap-1">
                                         <Eye className="w-4 h-4" />
-                                        <span className="hidden sm:inline">View</span>
+                                        <span className="hidden sm:inline" >View</span>
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={() => onStoreClick(store)}>
+                                    <Button variant="outline" size="sm" onClick={() => router.push(`/account/store/${store.id}`)}>
                                         <ChevronRight className="w-4 h-4" />
                                     </Button>
                                 </div>

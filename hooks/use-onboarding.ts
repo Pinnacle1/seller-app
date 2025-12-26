@@ -46,6 +46,7 @@ export function useOnboarding() {
                 setStoreInfo({
                     id: store.id,
                     name: store.name,
+                    slug: store.slug,
                     description: store.description,
                     logoUrl: store.logo_url,
                 })
@@ -69,6 +70,7 @@ export function useOnboarding() {
                 setStoreInfo({
                     id: response.data.id,
                     name: response.data.name,
+                    slug: response.data.slug,
                     description: response.data.description,
                     logoUrl: response.data.logo_url || null,
                 })

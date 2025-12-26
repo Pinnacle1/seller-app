@@ -42,5 +42,14 @@ export const queryKeys = {
         profile: () => [...queryKeys.account.all, "profile"] as const,
         kyc: () => [...queryKeys.account.all, "kyc"] as const,
         bank: () => [...queryKeys.account.all, "bank"] as const,
+        addresses: () => [...queryKeys.account.all, "addresses"] as const,
+    },
+
+    // Reviews
+    reviews: {
+        all: ["reviews"] as const,
+        list: (storeId: number, params?: Record<string, unknown>) =>
+            [...queryKeys.reviews.all, storeId, params] as const,
+        detail: (reviewId: number) => [...queryKeys.reviews.all, "detail", reviewId] as const,
     },
 };

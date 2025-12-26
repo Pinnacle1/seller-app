@@ -65,6 +65,16 @@ export const endpoints = {
     uploaddocument: '/seller/documents',
     deletedocument: '/seller/documents/:id',
 
+    //addresses
+    getaddresses: '/addresses',
+    getaddressbyid: '/addresses/:id',
+    createaddress: '/addresses',
+    updateaddress: '/addresses/:id',
+    deleteaddress: '/addresses/:id',
+
+    //reviews
+    getstorereviews: '/reviews/stores/:id',
+    getreviewbyid: '/reviews/:id',
 
 }
 

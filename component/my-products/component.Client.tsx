@@ -151,7 +151,7 @@ export function MyProductsClient({ storeSlug }: MyProductsClientProps) {
               Manage your product listings ({counts.all} total)
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -165,11 +165,11 @@ export function MyProductsClient({ storeSlug }: MyProductsClientProps) {
             <Button onClick={() => router.push(`/${storeSlug}/upload-product`)}>
               <Plus className="w-4 h-4 mr-2" /> Add Product
             </Button>
-          </div>
+          </div> */}
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex gap-2">
+        {/* <form onSubmit={handleSearch} className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -183,7 +183,7 @@ export function MyProductsClient({ storeSlug }: MyProductsClientProps) {
           <Button type="submit" variant="outline">
             Search
           </Button>
-        </form>
+        </form> */}
 
         {/* Filters */}
         <div className="flex gap-2 overflow-x-auto pb-2">

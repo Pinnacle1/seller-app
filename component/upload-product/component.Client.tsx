@@ -45,7 +45,7 @@ export function UploadProductClient({ storeSlug }: UploadProductClientProps) {
   }
 
   return (
-    <DashboardLayout storeSlug={storeSlug}>
+    <DashboardLayout >
       <form onSubmit={handleSubmit} className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

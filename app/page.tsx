@@ -1,21 +1,49 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { useStoresQuery } from "@/queries/use-stores-query"
 import useActiveStoreStore from "@/store/active-store"
+import { authService } from "@/service/auth.service"
 
 export default function RootPage() {
   const router = useRouter()
-
-  // Stores list (React Query - server state)
-  const { data: stores = [], isPending, isSuccess } = useStoresQuery()
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   // Active store context (Zustand - UI state)
   const { activeStoreSlug, setActiveStore } = useActiveStoreStore()
 
+  // Check authentication first
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const result = await authService.me()
+        if (result.success && result.data) {
+          setIsAuthenticated(true)
+        } else {
+          // Not authenticated - redirect to auth
+          router.replace("/auth")
+        }
+      } catch (error) {
+        // Error fetching user - redirect to auth
+        router.replace("/auth")
+      } finally {
+        setIsCheckingAuth(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  // Only fetch stores if authenticated
+  const { data: stores = [], isPending, isSuccess, isError } = useStoresQuery()
+
+  // Redirect logic after stores are loaded
+  useEffect(() => {
+    if (!isAuthenticated || isCheckingAuth) return
+
     if (isSuccess) {
       if (activeStoreSlug) {
         // Has active store - redirect to it
@@ -31,17 +59,24 @@ export default function RootPage() {
         })
         router.replace(`/${firstStore.slug}/home`)
       } else {
-        // No stores - redirect to add-store
-        router.replace("/add-store")
+        // No stores - redirect to onboarding to create first store
+        router.replace("/onboarding")
       }
     }
-  }, [isSuccess, stores, activeStoreSlug, setActiveStore, router])
+
+    if (isError) {
+      // Error fetching stores - might be auth issue
+      router.replace("/auth")
+    }
+  }, [isAuthenticated, isCheckingAuth, isSuccess, isError, stores, activeStoreSlug, setActiveStore, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Loading your store...</p>
+        <p className="text-sm text-muted-foreground">
+          {isCheckingAuth ? "Checking authentication..." : "Loading your store..."}
+        </p>
       </div>
     </div>
   )

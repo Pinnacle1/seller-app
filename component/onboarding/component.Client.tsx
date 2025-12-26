@@ -11,6 +11,7 @@ import { BankDetailsStep } from "./components/BankDetailsStep"
 import { Store, Image, ShieldCheck, CreditCard, Building2, Check, Loader2 } from "lucide-react"
 import { authService } from "@/service/auth.service"
 import useOnboardingStore from "@/store/onboarding-store"
+import useActiveStoreStore from "@/store/active-store"
 
 // Form step handle type for ref-based submission
 export type FormStepHandle = {
@@ -243,6 +244,8 @@ export function OnboardingClient() {
     reset,
   } = useOnboardingStore()
 
+  const { setActiveStore } = useActiveStoreStore()
+
   const isFirstStep = currentStep === 0
   const isLastStep = currentStep === STEPS.length - 1
   const currentStepConfig = STEPS[currentStep]
@@ -312,14 +315,23 @@ export function OnboardingClient() {
 
   const handleSkip = useCallback(() => {
     if (isLastStep) {
-      // Skip & Finish for the last step
+      // Skip & Finish for the last step - set active store first
+      if (storeInfo.id && storeInfo.slug) {
+        setActiveStore({
+          id: storeInfo.id,
+          slug: storeInfo.slug,
+          name: storeInfo.name,
+          logo_url: storeInfo.logoUrl,
+        })
+      }
+      const slug = storeInfo.slug
       reset()
-      router.push("/home")
+      router.push(slug ? `/${slug}/home` : "/dashboard")
     } else {
       setDirection(1)
       setCurrentStep(currentStep + 1)
     }
-  }, [isLastStep, currentStep, router, reset, setCurrentStep])
+  }, [isLastStep, currentStep, router, reset, setCurrentStep, storeInfo, setActiveStore])
 
   const handleFinish = useCallback(async () => {
     // For the last step, try to submit if it has a form
@@ -339,10 +351,21 @@ export function OnboardingClient() {
       setLoading(false)
     }
 
+    // Set active store before clearing onboarding data
+    if (storeInfo.id && storeInfo.slug) {
+      setActiveStore({
+        id: storeInfo.id,
+        slug: storeInfo.slug,
+        name: storeInfo.name,
+        logo_url: storeInfo.logoUrl,
+      })
+    }
+
     // Clear onboarding data and redirect
+    const slug = storeInfo.slug
     reset()
-    router.push("/home")
-  }, [router, reset])
+    router.push(slug ? `/${slug}/home` : "/dashboard")
+  }, [router, reset, storeInfo, setActiveStore])
 
   // Render step content
   const renderStep = () => {

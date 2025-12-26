@@ -6,6 +6,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export interface StoreInfo {
     id: number | null;
     name: string;
+    slug: string;
     description: string;
     logoUrl: string | null;
 }
@@ -80,6 +81,7 @@ type Action = {
 const initialStoreInfo: StoreInfo = {
     id: null,
     name: "",
+    slug: "",
     description: "",
     logoUrl: null,
 };

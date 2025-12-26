@@ -37,7 +37,7 @@ export function useUpdateStore() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ storeId, data }: { storeId: number; data: { name?: string; description?: string } }) => {
+        mutationFn: async ({ storeId, data }: { storeId: number; data: Partial<Omit<StoreData, 'id' | 'slug' | 'rating_avg' | 'rating_count' | 'is_verified' | 'products_count' | 'created_at'>> }) => {
             const response = await onboardService.updateStore(storeId, data);
             if (!response.success) {
                 throw new Error(response.message || "Failed to update store");

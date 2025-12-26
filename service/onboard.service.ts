@@ -14,6 +14,18 @@ export interface StoreData {
     is_active: boolean;
     is_verified: boolean;
     products_count?: number;
+    // Address
+    address_line1?: string;
+    address_line2?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+    address_phone?: string;
+    // Policies
+    shipping_policy?: string;
+    return_policy?: string;
+    support_contact?: string;
     created_at: string;
 }
 
@@ -80,7 +92,7 @@ export const onboardService = {
         );
     },
 
-    updateStore: async (id: number, data: { name?: string; description?: string }) => {
+    updateStore: async (id: number, data: Partial<Omit<StoreData, 'id' | 'slug' | 'rating_avg' | 'rating_count' | 'is_verified' | 'products_count' | 'created_at'>>) => {
         const path = endpoints.updatestore.replace(":id", String(id));
         return END_POINT.PATCH(
             path,
