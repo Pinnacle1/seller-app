@@ -11,6 +11,8 @@ import {
 } from "../types/auth";
 
 import { COOKIE_ACCESS_TOKEN, getCookie, removeCookie, setCookie } from "../utils/cookie-helper";
+import useActiveStoreStore from "../store/active-store";
+import useOnboardingStore from "../store/onboarding-store";
 
 export const authService = {
     login: async (data: LoginRequest) => {
@@ -52,6 +54,9 @@ export const authService = {
             console.error("Logout error:", error);
         } finally {
             removeCookie(COOKIE_ACCESS_TOKEN);
+            // Clear stores
+            useActiveStoreStore.getState().clear();
+            useOnboardingStore.getState().reset();
         }
     },
 
@@ -112,6 +117,9 @@ export const authService = {
             throw error;
         } finally {
             removeCookie(COOKIE_ACCESS_TOKEN);
+            // Clear stores
+            useActiveStoreStore.getState().clear();
+            useOnboardingStore.getState().reset();
         }
     }
 };

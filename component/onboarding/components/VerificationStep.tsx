@@ -89,10 +89,7 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
 
   useImperativeHandle(ref, () => ({
     submit: async () => {
-      if (!verification.phoneVerified) {
-        setPhoneError("Please verify your phone number")
-        return false
-      }
+      // Phone verification check removed
       if (!verification.emailVerified) {
         setEmailError("Please verify your email address")
         return false
@@ -221,11 +218,10 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
 
       <div className="space-y-4">
         {/* Phone Verification */}
-        <div className="border border-border rounded-xl p-4 md:p-6 space-y-4 bg-muted/30">
+        <div className="border border-border rounded-xl p-4 md:p-6 space-y-4 bg-muted/30 opacity-60">
           <div className="flex items-center gap-2">
             <Phone className="w-5 h-5 text-muted-foreground" />
             <span className="font-medium">Mobile Number</span>
-            {verification.phoneVerified && <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />}
           </div>
 
           <div className="flex gap-2">
@@ -233,62 +229,16 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
               <Input
                 placeholder="Enter mobile number"
                 value={phone}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "").slice(0, 10)
-                  setPhone(value)
-                  setVerification({ phone: value })
-                }}
-                disabled={phoneSent || verification.phoneVerified || isPhoneFromRegistration}
+                readOnly
+                disabled
+                className="cursor-not-allowed"
               />
-              {(isPhoneFromRegistration || verification.phoneVerified) && (
-                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              )}
+              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             </div>
-            {!phoneSent && !verification.phoneVerified && (
-              <button
-                onClick={handleSendPhoneOtp}
-                disabled={phoneLoading || phone.length < 10}
-                className="shrink-0 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send OTP"}
-              </button>
-            )}
           </div>
-
-          {isPhoneFromRegistration && !phoneSent && !verification.phoneVerified && (
-            <p className="text-xs text-muted-foreground">
-              Phone number from registration. Click "Send OTP" to verify.
-            </p>
-          )}
-
-          {phoneSent && !verification.phoneVerified && (
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="Enter 6-digit OTP"
-                  value={phoneOtp}
-                  onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  maxLength={6}
-                />
-              </div>
-              <button
-                onClick={handleVerifyPhone}
-                disabled={phoneLoading || phoneOtp.length !== 6}
-                className="shrink-0 px-4 py-2 text-sm font-medium bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {phoneLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
-              </button>
-            </div>
-          )}
-
-          {phoneError && <p className="text-sm text-destructive">{phoneError}</p>}
-
-          {verification.phoneVerified && (
-            <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <p className="text-sm text-green-500">Phone verified successfully</p>
-            </div>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Mobile verification is optional and currently disabled.
+          </p>
         </div>
 
         {/* Email Verification */}
@@ -353,27 +303,9 @@ export const VerificationStep = forwardRef<FormStepHandle>((_, ref) => {
           )}
 
           {emailError && <p className="text-sm text-destructive">{emailError}</p>}
-
-          {verification.emailVerified && (
-            <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <p className="text-sm text-green-500">Email verified successfully</p>
-            </div>
-          )}
         </div>
       </div>
 
-      {verification.phoneVerified && verification.emailVerified && (
-        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
-          <p className="text-sm text-green-500">Both verified! Click "Next" to proceed.</p>
-        </div>
-      )}
-
-      <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-        <p className="text-xs text-yellow-500 text-center">
-          This step is required. You must verify both phone and email to continue.
-        </p>
-      </div>
     </div>
   )
 })

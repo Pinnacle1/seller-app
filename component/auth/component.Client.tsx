@@ -5,18 +5,33 @@ import { useRouter } from "next/navigation"
 import useActiveStoreStore from "@/store/active-store"
 import { LoginForm } from "./components/LoginForm"
 import { RegisterForm } from "./components/RegisterForm"
+import { onboardService } from "@/service/onboard.service"
 
 export function AuthClient() {
   const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
   const { activeStoreSlug } = useActiveStoreStore()
 
-  const handleLoginSuccess = () => {
-    if (activeStoreSlug) {
-      router.push(`/${activeStoreSlug}/home`)
-      return
+  const handleLoginSuccess = async () => {
+    try {
+      const response = await onboardService.getStores()
+      if (response.success && response.data && response.data.length > 0) {
+        const firstStore = response.data[0]
+        useActiveStoreStore.getState().setActiveStore({
+          id: firstStore.id,
+          slug: firstStore.slug,
+          name: firstStore.name,
+          logo_url: firstStore.logo_url,
+        })
+        router.push(`/${firstStore.slug}/home`)
+        return
+      }
+    } catch (error) {
+      console.error("Failed to fetch stores:", error)
     }
-    router.push("/dashboard")
+
+    // If no stores or error, go to onboarding/add-store
+    router.push("/onboarding")
   }
 
   const handleRegisterSuccess = () => {

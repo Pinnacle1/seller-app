@@ -5,6 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { removeCookie, COOKIE_ACCESS_TOKEN } from "@/utils/cookie-helper";
 
+import useActiveStoreStore from "@/store/active-store";
+import useOnboardingStore from "@/store/onboarding-store";
+
 export function QueryProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
@@ -12,6 +15,11 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         // Check if error message or status indicates unauthorized
         if (error.message.includes("401") || error.message.toLowerCase().includes("unauthorized")) {
             removeCookie(COOKIE_ACCESS_TOKEN);
+
+            // Clear stores
+            useActiveStoreStore.getState().clear();
+            useOnboardingStore.getState().reset();
+
             router.push("/auth");
         }
     };

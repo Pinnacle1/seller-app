@@ -220,18 +220,6 @@ export const BankDetailsStep = forwardRef<FormStepHandle>((_, ref) => {
           </button>
         )}
       </div>
-
-      <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-        <p className="text-xs text-blue-400 text-center">
-          This step is optional. You can skip and add bank details later from your dashboard.
-        </p>
-      </div>
-
-      {bank.submitted && (
-        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
-          <p className="text-sm text-green-500">You're all set! Click "Finish" to complete onboarding.</p>
-        </div>
-      )}
     </div>
   )
 })

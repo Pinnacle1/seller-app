@@ -154,12 +154,6 @@ export const LogoUploadStep = forwardRef<FormStepHandle>((_, ref) => {
           </div>
         )}
       </div>
-
-      <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-        <p className="text-xs text-blue-400 text-center">
-          This step is optional. You can skip and add a logo later.
-        </p>
-      </div>
     </div>
   )
 })

@@ -122,14 +122,6 @@ export const StoreInfoStep = forwardRef<FormStepHandle>((_, ref) => {
           </div>
         )}
       </div>
-
-      {!storeInfo.id && (
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-          <p className="text-xs text-yellow-500 text-center">
-            This step is required. You must create a store to continue.
-          </p>
-        </div>
-      )}
     </div>
   )
 })
