@@ -1,4 +1,4 @@
-import { OrdersClient } from "@/component/orders/Component.Client"
+import { OrdersClient } from "@/component/orders/component.Client"
 
 interface PageProps {
     params: Promise<{
